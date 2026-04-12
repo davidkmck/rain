@@ -77,22 +77,6 @@
 
         function handleSourceChange() { if (!audio.paused) startPlayback(); }
 
-        function startPlayback() {
-            stopVisuals();
-            // We pull the sound directly from our 'sounds' variable above
-            audio.src = sounds[selector.value];
-            
-            audio.play().then(() => {
-                btn.innerText = "STOP";
-                btn.classList.add('active');
-                status.innerText = "Playing Offline...";
-                startVisuals();
-                setTimer();
-            }).catch(e => {
-                status.innerText = "Browser Blocked Autoplay. Click Start Again.";
-                console.error(e);
-            });
-        }
 
         function setTimer() {
             if (timerTimeout) clearTimeout(timerTimeout);
@@ -107,17 +91,45 @@
                 }, mins * 60000);
             }
         }
+// Replace your existing toggleAudio function with this one
+function toggleAudio() {
+    // 1. Manually "wake up" the audio engine for Android
+    if (typeof AudioContext !== "undefined" || typeof webkitAudioContext !== "undefined") {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        const tempCtx = new AudioContextClass();
+        tempCtx.resume();
+    }
 
-        function toggleAudio() {
-            if (audio.paused) startPlayback();
-            else {
-                audio.pause();
-                btn.innerText = "START";
-                btn.classList.remove('active');
-                stopVisuals();
-                if (timerTimeout) clearTimeout(timerTimeout);
-            }
-        }
+    // 2. Clear status and try to play
+    if (audio.paused) {
+        status.innerText = "Attempting to start...";
+        startPlayback();
+    } else {
+        stopEverything();
+        status.innerText = "Paused";
+    }
+}
+
+function startPlayback() {
+    stopVisuals();
+    audio.src = selector.value;
+    
+    // 3. Force the audio to load before playing
+    audio.load(); 
+
+    audio.play().then(() => {
+        btn.innerText = "STOP";
+        btn.classList.add('active');
+        status.innerText = "Playing: " + selector.options[selector.selectedIndex].text;
+        startVisuals();
+        setTimer();
+    }).catch(e => {
+        // If it still blocks, show exactly why in the status bar
+        status.innerText = "Tap again to confirm audio";
+        console.error("Playback error:", e);
+    });
+}
+
     </script>
 </body>
 </html>
