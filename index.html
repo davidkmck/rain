@@ -6,13 +6,13 @@
     <title>Rain App</title>
     <style>
         body {
-            margin: 0; background: #060b16; color: #f8fafc;
+            margin: 0; background: #040812; color: #f8fafc;
             font-family: sans-serif; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100vh;
             overflow: hidden;
         }
         
-        /* POURING RAIN ANIMATION */
+        /* THE "POURING" ANIMATION */
         #rain-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; display: none; z-index: 1;
@@ -20,12 +20,12 @@
         .drop {
             position: absolute; 
             width: 1px;
-            height: 35px; /* Longer for streaking effect */
-            background: rgba(255, 255, 255, 0.3);
-            transform: rotate(10deg); /* Slight angle for driving rain */
-            animation: fall 0.15s linear infinite; /* High speed */
+            height: 50px; /* Increased for heavy pouring effect */
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(15deg); /* Driving rain angle */
+            animation: fall 0.12s linear infinite; /* Fast! */
         }
-        @keyframes fall { to { transform: translateY(100vh) rotate(10deg); } }
+        @keyframes fall { to { transform: translateY(100vh) rotate(15deg); } }
 
         h1 { font-weight: 300; letter-spacing: 12px; color: #38bdf8; z-index: 10; margin-bottom: 30px; }
         
@@ -40,10 +40,11 @@
             background: #38bdf8; color: #0f172a; border: none;
             padding: 20px 60px; border-radius: 50px; font-size: 1.3rem;
             font-weight: bold; cursor: pointer; transition: 0.3s; margin: 10px 0;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
         }
         #playBtn.active { background: #ef4444; color: white; }
         
-        #status { font-size: 0.9rem; color: #64748b; height: 20px; }
+        #status { font-size: 1rem; color: #38bdf8; font-weight: bold; height: 24px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -80,16 +81,16 @@
         const status = document.getElementById('status');
         const rainContainer = document.getElementById('rain-container');
         
-        let timerTimeout;
+        let countdownInterval;
 
         function createRain() {
             rainContainer.innerHTML = '';
-            for(let i=0; i<150; i++) {
+            for(let i=0; i<180; i++) { // More drops for heavy rain
                 let drop = document.createElement('div');
                 drop.className = 'drop';
                 drop.style.left = Math.random() * 100 + 'vw';
                 drop.style.animationDelay = Math.random() * 1 + 's';
-                drop.style.animationDuration = (0.1 + Math.random() * 0.1) + 's'; 
+                drop.style.animationDuration = (0.1 + Math.random() * 0.05) + 's'; 
                 rainContainer.appendChild(drop);
             }
         }
@@ -101,27 +102,34 @@
             btn.classList.remove('active');
             status.innerText = "Ready";
             rainContainer.style.display = 'none';
-            clearTimeout(timerTimeout);
+            clearInterval(countdownInterval);
         }
 
         function start() {
-            // UI Setup
             btn.innerText = "STOP";
             btn.classList.add('active');
             rainContainer.style.display = 'block';
             createRain();
 
-            // Audio Setup
             player.src = rainSelect.value;
             player.play();
 
-            // Timer Logic
             const minutes = parseInt(timerSelect.value);
             if (minutes > 0) {
-                status.innerText = `Timer set: ${minutes}m`;
-                timerTimeout = setTimeout(() => {
-                    stop();
-                }, minutes * 60000);
+                let secondsRemaining = minutes * 60;
+                
+                // Update countdown every second
+                countdownInterval = setInterval(() => {
+                    secondsRemaining--;
+                    
+                    let mins = Math.floor(secondsRemaining / 60);
+                    let secs = secondsRemaining % 60;
+                    status.innerText = `Ends in: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+                    if (secondsRemaining <= 0) {
+                        stop();
+                    }
+                }, 1000);
             } else {
                 status.innerText = "Playing Continuous";
             }
@@ -132,7 +140,6 @@
             else { stop(); }
         };
 
-        // Reset if they change sound while playing
         rainSelect.onchange = () => { if (!player.paused) stop(); };
     </script>
 </body>
