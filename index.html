@@ -88,44 +88,52 @@ const playBtn = document.getElementById('playBtn');
 const rainSelect = document.getElementById('rainSelect');
 const statusText = document.getElementById('status');
 
-// We removed 'async' from the main function to make it "instant"
 playBtn.onclick = function() {
+    // 1. If it's already playing, STOP it
     if (!player.paused) {
         player.pause();
         player.currentTime = 0;
         playBtn.innerText = "START";
         playBtn.classList.remove('active');
         statusText.innerText = "Stopped";
-    } else {
-        statusText.innerText = "Loading...";
-        
-        // 1. Set the source
+        return;
+    }
+
+    // 2. If we are STARTING:
+    // Update the button IMMEDIATELY so the user sees feedback
+    playBtn.innerText = "STOP";
+    playBtn.classList.add('active');
+    statusText.innerText = "Loading...";
+
+    try {
         player.src = rainSelect.value;
         
-        // 2. THE FIX: Call .play() immediately. 
-        // Browsers trust this more when it's the very first action.
+        // We fire the play command
         player.play().then(() => {
-            playBtn.innerText = "STOP";
-            playBtn.classList.add('active');
             statusText.innerText = "Playing Smoothly";
         }).catch(err => {
             console.error(err);
-            // 3. Fallback to the Google-hosted link if the Archive link fails
+            // If the specific link fails, try the backup
             statusText.innerText = "Link failed. Trying backup...";
             player.src = "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
             player.play();
         });
+    } catch (e) {
+        // Reset button if a critical error happens
+        playBtn.innerText = "START";
+        playBtn.classList.remove('active');
+        statusText.innerText = "Error: " + e.message;
     }
 };
 
-// Ensure audio stops if selection changes
+// Reset everything if they change the sound
 rainSelect.onchange = () => {
     player.pause();
     playBtn.innerText = "START";
     playBtn.classList.remove('active');
+    statusText.innerText = "Ready";
 };
-        
-    
+
     </script>
 </body>
 </html>
