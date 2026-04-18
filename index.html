@@ -9,22 +9,41 @@
             margin: 0; background: #0f172a; color: #f8fafc;
             font-family: sans-serif; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100vh;
+            overflow: hidden;
         }
-        h1 { font-weight: 300; letter-spacing: 4px; color: #38bdf8; }
+        h1 { font-weight: 300; letter-spacing: 4px; color: #38bdf8; z-index: 10; }
+        
+        /* Rain Animation Overlay */
+        .rain-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; opacity: 0; transition: opacity 1s;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+        }
+        .raining .rain-overlay {
+            opacity: 0.3;
+            animation: rainDrop 0.2s infinite linear;
+        }
+        @keyframes rainDrop {
+            0% { transform: translateY(-10px); }
+            100% { transform: translateY(10px); }
+        }
+
         select {
             background: #1e293b; color: white; border: 1px solid #334155;
-            padding: 12px; border-radius: 8px; margin-bottom: 20px; width: 280px;
+            padding: 12px; border-radius: 8px; margin-bottom: 20px; width: 280px; z-index: 10;
         }
         #playBtn {
             background: #38bdf8; color: #0f172a; border: none;
             padding: 20px 50px; border-radius: 50px; font-size: 1.2rem;
-            font-weight: bold; cursor: pointer; transition: 0.3s;
+            font-weight: bold; cursor: pointer; transition: 0.3s; z-index: 10;
         }
         #playBtn.active { background: #ef4444; color: white; }
-        #status { margin-top: 20px; font-size: 0.8rem; color: #64748b; }
+        #status { margin-top: 20px; font-size: 0.8rem; color: #64748b; z-index: 10; }
     </style>
 </head>
 <body>
+
+    <div class="rain-overlay" id="rainOverlay"></div>
 
     <h1>ATMOSPHERE</h1>
 
@@ -44,56 +63,45 @@
         const playBtn = document.getElementById('playBtn');
         const rainSelect = document.getElementById('rainSelect');
         const statusText = document.getElementById('status');
+        const body = document.body;
 
-        playBtn.onclick = async function() {
-            // 1. If it's already playing, STOP it
+        playBtn.onclick = function() {
             if (!player.paused) {
-                player.pause();
-                player.currentTime = 0;
-                playBtn.innerText = "START";
-                playBtn.classList.remove('active');
-                statusText.innerText = "Stopped";
-                return;
-            }
-
-            // 2. Start Logic
-            statusText.innerText = "Connecting...";
-            player.src = rainSelect.value;
-
-            try {
-                await player.play();
-                // We update the UI here immediately after play starts
-                updateUI(true);
-            } catch (err) {
-                console.error("Playback failed, trying backup...");
-                // Emergency fallback logic
-                player.src = "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
-                try {
-                    await player.play();
-                    updateUI(true);
-                    statusText.innerText = "Playing Backup Rain";
-                } catch (finalErr) {
-                    statusText.innerText = "Error: Tap again";
-                    updateUI(false);
-                }
+                stopRain();
+            } else {
+                startRain();
             }
         };
 
-        function updateUI(isPlaying) {
-            if (isPlaying) {
-                playBtn.innerText = "STOP";
-                playBtn.classList.add('active');
+        function startRain() {
+            // UI Updates happen INSTANTLY so they can't get stuck
+            playBtn.innerText = "STOP";
+            playBtn.classList.add('active');
+            body.classList.add('raining');
+            statusText.innerText = "Connecting...";
+
+            player.src = rainSelect.value;
+            
+            player.play().then(() => {
                 statusText.innerText = "Playing Smoothly";
-            } else {
-                playBtn.innerText = "START";
-                playBtn.classList.remove('active');
-            }
+            }).catch(err => {
+                console.error("Main link failed, trying backup...");
+                player.src = "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
+                player.play();
+                statusText.innerText = "Playing Backup Rain";
+            });
         }
 
-        rainSelect.onchange = () => {
+        function stopRain() {
             player.pause();
-            updateUI(false);
-        };
+            player.currentTime = 0;
+            playBtn.innerText = "START";
+            playBtn.classList.remove('active');
+            body.classList.remove('raining');
+            statusText.innerText = "Stopped";
+        }
+
+        rainSelect.onchange = stopRain;
     </script>
 </body>
 </html>
