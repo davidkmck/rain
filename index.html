@@ -47,53 +47,50 @@
     <audio id="mainAudio" loop></audio>
 
     <script>
+// A guaranteed secure, short test sound
+const testSound = "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
+
 const selector = document.getElementById('rainSelect');
 const btn = document.getElementById('playBtn');
 const status = document.getElementById('status');
 
-// Create one single player
-let player = new Audio();
-
-// This is the secret sauce for gapless:
-player.addEventListener('timeupdate', function() {
-    // When the sound is 0.1 seconds from the end, jump to the start
-    const buffer = 0.1;
-    if (this.currentTime > this.duration - buffer) {
-        this.currentTime = 0;
-        this.play();
-    }
-});
+// Create the player once
+const player = new Audio();
+player.loop = true;
 
 async function handleBtnClick() {
+    console.log("Button clicked. Current State:", player.paused ? "Paused" : "Playing");
+    
     if (!player.paused) {
-        // STOP LOGIC
         player.pause();
-        player.currentTime = 0;
         btn.innerText = "START";
-        btn.classList.remove('active');
         status.innerText = "Stopped";
-        if (typeof stopVisuals === "function") stopVisuals();
     } else {
-        // START LOGIC
-        status.innerText = "Connecting...";
+        status.innerText = "Loading...";
         
-        // Force the source update inside the click event (Crucial for Android)
-        player.src = selector.value;
-        player.load(); 
+        // Try the selector value, but if it fails, we'll know why
+        player.src = selector.value; 
         
+        // FOR TESTING: Uncomment the line below to force the test sound
+        // player.src = testSound; 
+
         try {
             await player.play();
             btn.innerText = "STOP";
-            btn.classList.add('active');
-            status.innerText = "Playing (Seamless)";
-            if (typeof startVisuals === "function") startVisuals();
-        } catch (e) {
-            status.innerText = "Error: Tap again";
-            console.error("Audio error:", e);
+            status.innerText = "Playing!";
+            console.log("Playback started successfully");
+        } catch (err) {
+            console.error("PLAYBACK ERROR:", err);
+            status.innerText = "Error: " + err.message;
+            
+            // If it fails, try the emergency test sound automatically
+            status.innerText = "Link failed. Trying backup...";
+            player.src = testSound;
+            await player.play();
+            status.innerText = "Playing Backup Rain";
         }
     }
 }
-        
     </script>
 </body>
 </html>
