@@ -47,75 +47,53 @@
     <audio id="mainAudio" loop></audio>
 
     <script>
-        const selector = document.getElementById('rainSelect');
+const selector = document.getElementById('rainSelect');
 const btn = document.getElementById('playBtn');
 const status = document.getElementById('status');
 
-// Create two audio objects for seamless switching
-let players = [new Audio(), new Audio()];
-let activePlayer = 0;
-let isPlaying = false;
+// Create one single player
+let player = new Audio();
 
-function setupPlayer(player) {
-    player.preload = "auto";
-    // We handle the loop manually for gapless playback
-    player.onended = () => {
-        if (isPlaying) playNext();
-    };
-}
-
-setupPlayer(players[0]);
-setupPlayer(players[1]);
-
-function playNext() {
-    const nextPlayer = 1 - activePlayer;
-    players[nextPlayer].src = selector.value;
-    
-    // Start the next player slightly early (0.1s) to cover the gap
-    players[nextPlayer].play();
-    activePlayer = nextPlayer;
-}
-
-async function startPlayback() {
-    isPlaying = true;
-    status.innerText = "Starting...";
-    
-    try {
-        players[activePlayer].src = selector.value;
-        await players[activePlayer].play();
-        
-        btn.innerText = "STOP";
-        btn.classList.add('active');
-        status.innerText = "Playing Smooth Loop";
-        startVisuals();
-    } catch (e) {
-        status.innerText = "Tap again to allow audio";
-        console.error(e);
+// This is the secret sauce for gapless:
+player.addEventListener('timeupdate', function() {
+    // When the sound is 0.1 seconds from the end, jump to the start
+    const buffer = 0.1;
+    if (this.currentTime > this.duration - buffer) {
+        this.currentTime = 0;
+        this.play();
     }
-}
+});
 
-function stopEverything() {
-    isPlaying = false;
-    players[0].pause();
-    players[1].pause();
-    players[0].currentTime = 0;
-    players[1].currentTime = 0;
-    
-    btn.innerText = "START";
-    btn.classList.remove('active');
-    stopVisuals();
-    status.innerText = "Stopped";
-}
-
-function handleBtnClick() {
-    if (isPlaying) {
-        stopEverything();
+async function handleBtnClick() {
+    if (!player.paused) {
+        // STOP LOGIC
+        player.pause();
+        player.currentTime = 0;
+        btn.innerText = "START";
+        btn.classList.remove('active');
+        status.innerText = "Stopped";
+        if (typeof stopVisuals === "function") stopVisuals();
     } else {
-        startPlayback();
+        // START LOGIC
+        status.innerText = "Connecting...";
+        
+        // Force the source update inside the click event (Crucial for Android)
+        player.src = selector.value;
+        player.load(); 
+        
+        try {
+            await player.play();
+            btn.innerText = "STOP";
+            btn.classList.add('active');
+            status.innerText = "Playing (Seamless)";
+            if (typeof startVisuals === "function") startVisuals();
+        } catch (e) {
+            status.innerText = "Error: Tap again";
+            console.error("Audio error:", e);
+        }
     }
 }
-
-
+        
     </script>
 </body>
 </html>
