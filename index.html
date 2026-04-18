@@ -81,58 +81,51 @@
     <div id="status">Ready</div>
 
     <script>
-        // Use one global audio object
-        const player = new Audio();
-        player.loop = true;
+const player = new Audio();
+player.loop = true;
 
-        const playBtn = document.getElementById('playBtn');
-        const rainSelect = document.getElementById('rainSelect');
-        const statusText = document.getElementById('status');
+const playBtn = document.getElementById('playBtn');
+const rainSelect = document.getElementById('rainSelect');
+const statusText = document.getElementById('status');
 
-        async function togglePlay() {
-            if (!player.paused) {
-                // STOP LOGIC
-                player.pause();
-                player.currentTime = 0;
-                playBtn.innerText = "START";
-                playBtn.classList.remove('active');
-                statusText.innerText = "Stopped";
-            } else {
-                // START LOGIC
-                statusText.innerText = "Connecting...";
-                
-                // Set source and force load
-                player.src = rainSelect.value;
-                player.load();
+// We removed 'async' from the main function to make it "instant"
+playBtn.onclick = function() {
+    if (!player.paused) {
+        player.pause();
+        player.currentTime = 0;
+        playBtn.innerText = "START";
+        playBtn.classList.remove('active');
+        statusText.innerText = "Stopped";
+    } else {
+        statusText.innerText = "Loading...";
+        
+        // 1. Set the source
+        player.src = rainSelect.value;
+        
+        // 2. THE FIX: Call .play() immediately. 
+        // Browsers trust this more when it's the very first action.
+        player.play().then(() => {
+            playBtn.innerText = "STOP";
+            playBtn.classList.add('active');
+            statusText.innerText = "Playing Smoothly";
+        }).catch(err => {
+            console.error(err);
+            // 3. Fallback to the Google-hosted link if the Archive link fails
+            statusText.innerText = "Link failed. Trying backup...";
+            player.src = "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
+            player.play();
+        });
+    }
+};
 
-                try {
-                    await player.play();
-                    playBtn.innerText = "STOP";
-                    playBtn.classList.add('active');
-                    statusText.innerText = "Playing Seamlessly";
-                } catch (err) {
-                    console.error("Playback error:", err);
-                    statusText.innerText = "Error: Tap again";
-                    
-                    // Emergency Backup Sound if Archive.org is down
-                    if (err.name === "NotAllowedError" || err.message.includes("src")) {
-                        player.src = "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
-                        await player.play();
-                        statusText.innerText = "Playing Backup Sound";
-                    }
-                }
-            }
-        }
-
-        // Connect the button to the function
-        playBtn.onclick = togglePlay;
-
-        // Visual fix: Stop audio if user changes the selection while playing
-        rainSelect.onchange = () => {
-            if (!player.paused) {
-                togglePlay();
-            }
-        };
+// Ensure audio stops if selection changes
+rainSelect.onchange = () => {
+    player.pause();
+    playBtn.innerText = "START";
+    playBtn.classList.remove('active');
+};
+        
+    
     </script>
 </body>
 </html>
