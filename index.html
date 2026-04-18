@@ -19,30 +19,31 @@
         }
         .drop {
             position: absolute; 
-            width: 1px;         /* Thinner */
-            height: 25px;       /* Longer */
-            background: rgba(255, 255, 255, 0.4);
-            animation: fall 0.2s linear infinite; /* Much faster for "pouring" effect */
+            width: 1px;
+            height: 35px; /* Longer for streaking effect */
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(10deg); /* Slight angle for driving rain */
+            animation: fall 0.15s linear infinite; /* High speed */
         }
-        @keyframes fall { to { transform: translateY(100vh); } }
+        @keyframes fall { to { transform: translateY(100vh) rotate(10deg); } }
 
-        /* CHANGED FROM ATMOSPHERE TO RAIN */
-        h1 { font-weight: 300; letter-spacing: 12px; color: #38bdf8; z-index: 10; margin-bottom: 40px; }
+        h1 { font-weight: 300; letter-spacing: 12px; color: #38bdf8; z-index: 10; margin-bottom: 30px; }
         
+        .controls { display: flex; flex-direction: column; gap: 15px; align-items: center; z-index: 10; }
+
         select {
             background: #1e293b; color: white; border: 1px solid #334155;
-            padding: 15px; border-radius: 12px; margin-bottom: 25px; 
-            width: 280px; z-index: 10; font-size: 16px; outline: none;
+            padding: 12px; border-radius: 8px; width: 280px; font-size: 16px; outline: none;
         }
         
         #playBtn {
             background: #38bdf8; color: #0f172a; border: none;
-            padding: 22px 60px; border-radius: 50px; font-size: 1.3rem;
-            font-weight: bold; cursor: pointer; transition: 0.3s; z-index: 10;
+            padding: 20px 60px; border-radius: 50px; font-size: 1.3rem;
+            font-weight: bold; cursor: pointer; transition: 0.3s; margin: 10px 0;
         }
         #playBtn.active { background: #ef4444; color: white; }
         
-        #status { margin-top: 25px; font-size: 0.9rem; color: #64748b; z-index: 10; }
+        #status { font-size: 0.9rem; color: #64748b; height: 20px; }
     </style>
 </head>
 <body>
@@ -51,65 +52,88 @@
 
     <h1>RAIN</h1>
 
-    <select id="rainSelect">
-        <option value="https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg">Heavy Rain</option>
-        <option value="https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg">Rain on Roof</option>
-        <option value="https://actions.google.com/sounds/v1/weather/thunderstorm.ogg">Thunderstorm</option>
-    </select>
+    <div class="controls">
+        <select id="rainSelect">
+            <option value="https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg">Heavy Rain</option>
+            <option value="https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg">Rain on Roof</option>
+            <option value="https://actions.google.com/sounds/v1/weather/thunderstorm.ogg">Thunderstorm</option>
+        </select>
 
-    <button id="playBtn">START</button>
-    <div id="status">Ready</div>
+        <select id="timerSelect">
+            <option value="0">Continuous</option>
+            <option value="5">5 Minutes</option>
+            <option value="10">10 Minutes</option>
+            <option value="30">30 Minutes</option>
+        </select>
+
+        <button id="playBtn">START</button>
+        <div id="status">Ready</div>
+    </div>
 
     <script>
         const player = new Audio();
         player.loop = true;
 
         const btn = document.getElementById('playBtn');
-        const selector = document.getElementById('rainSelect');
+        const rainSelect = document.getElementById('rainSelect');
+        const timerSelect = document.getElementById('timerSelect');
         const status = document.getElementById('status');
         const rainContainer = document.getElementById('rain-container');
+        
+        let timerTimeout;
 
         function createRain() {
             rainContainer.innerHTML = '';
-            // Increased to 120 drops for a heavier look
-            for(let i=0; i<120; i++) {
+            for(let i=0; i<150; i++) {
                 let drop = document.createElement('div');
                 drop.className = 'drop';
                 drop.style.left = Math.random() * 100 + 'vw';
                 drop.style.animationDelay = Math.random() * 1 + 's';
-                // Varied speeds for depth
-                drop.style.animationDuration = (0.15 + Math.random() * 0.1) + 's'; 
+                drop.style.animationDuration = (0.1 + Math.random() * 0.1) + 's'; 
                 rainContainer.appendChild(drop);
             }
         }
 
-        function toggle() {
-            if (player.paused) {
-                // UI Changes
-                btn.innerText = "STOP";
-                btn.classList.add('active');
-                status.innerText = "Pouring...";
-                rainContainer.style.display = 'block';
-                createRain();
-                
-                // Audio
-                player.src = selector.value;
-                player.play().catch(e => {
-                    // Fallback for browser block
-                    player.play();
-                });
+        function stop() {
+            player.pause();
+            player.currentTime = 0;
+            btn.innerText = "START";
+            btn.classList.remove('active');
+            status.innerText = "Ready";
+            rainContainer.style.display = 'none';
+            clearTimeout(timerTimeout);
+        }
+
+        function start() {
+            // UI Setup
+            btn.innerText = "STOP";
+            btn.classList.add('active');
+            rainContainer.style.display = 'block';
+            createRain();
+
+            // Audio Setup
+            player.src = rainSelect.value;
+            player.play();
+
+            // Timer Logic
+            const minutes = parseInt(timerSelect.value);
+            if (minutes > 0) {
+                status.innerText = `Timer set: ${minutes}m`;
+                timerTimeout = setTimeout(() => {
+                    stop();
+                }, minutes * 60000);
             } else {
-                player.pause();
-                player.currentTime = 0;
-                btn.innerText = "START";
-                btn.classList.remove('active');
-                status.innerText = "Ready";
-                rainContainer.style.display = 'none';
+                status.innerText = "Playing Continuous";
             }
         }
 
-        btn.onclick = toggle;
-        selector.onchange = () => { if (!player.paused) toggle(); };
+        btn.onclick = () => {
+            if (player.paused) { start(); } 
+            else { stop(); }
+        };
+
+        // Reset if they change sound while playing
+        rainSelect.onchange = () => { if (!player.paused) stop(); };
     </script>
 </body>
 </html>
