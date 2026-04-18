@@ -4,66 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Atmosphere - Rain</title>
-    
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0f172a">
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Atmosphere","short_name":"Rain","start_url":"index.html","display":"standalone","background_color":"#0f172a","theme_color":"#38bdf8"}'>
-
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            background: #0f172a;
-            color: #f8fafc;
-            font-family: -apple-system, system-ui, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-            text-align: center;
+            margin: 0; background: #0f172a; color: #f8fafc;
+            font-family: sans-serif; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; height: 100vh;
         }
-
-        h1 { font-weight: 300; letter-spacing: 4px; margin-bottom: 30px; color: #38bdf8; }
-
+        h1 { font-weight: 300; letter-spacing: 4px; color: #38bdf8; }
         select {
-            background: #1e293b;
-            color: white;
-            border: 1px solid #334155;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 16px;
-            margin-bottom: 20px;
-            width: 80%;
-            max-width: 300px;
+            background: #1e293b; color: white; border: 1px solid #334155;
+            padding: 12px; border-radius: 8px; margin-bottom: 20px; width: 280px;
         }
-
         #playBtn {
-            background: #38bdf8;
-            color: #0f172a;
-            border: none;
-            padding: 20px 50px;
-            border-radius: 50px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
-            transition: 0.3s;
+            background: #38bdf8; color: #0f172a; border: none;
+            padding: 20px 50px; border-radius: 50px; font-size: 1.2rem;
+            font-weight: bold; cursor: pointer; transition: 0.3s;
         }
-
-        #playBtn.active {
-            background: #ef4444;
-            color: white;
-        }
-
-        #status {
-            margin-top: 20px;
-            font-size: 0.8rem;
-            color: #64748b;
-            letter-spacing: 1px;
-        }
+        #playBtn.active { background: #ef4444; color: white; }
+        #status { margin-top: 20px; font-size: 0.8rem; color: #64748b; }
     </style>
 </head>
 <body>
@@ -71,69 +29,71 @@
     <h1>ATMOSPHERE</h1>
 
     <select id="rainSelect">
-        <option value="https://archive.org/download/rain_heavy_loud/rain_heavy_loud.mp3">Heavy Rain</option>
-        <option value="https://archive.org/download/soft-rain-ambient/soft-rain-ambient.mp3">Soft Rain</option>
-        <option value="https://archive.org/download/thunder-and-rain-ambient/thunder-and-rain-ambient.mp3">Thunderstorm</option>
+        <option value="https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg">Heavy Rain</option>
+        <option value="https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg">Rain on Roof</option>
+        <option value="https://actions.google.com/sounds/v1/weather/thunderstorm.ogg">Thunderstorm</option>
     </select>
 
     <button id="playBtn">START</button>
-
     <div id="status">Ready</div>
 
     <script>
-const player = new Audio();
-player.loop = true;
+        const player = new Audio();
+        player.loop = true;
 
-const playBtn = document.getElementById('playBtn');
-const rainSelect = document.getElementById('rainSelect');
-const statusText = document.getElementById('status');
+        const playBtn = document.getElementById('playBtn');
+        const rainSelect = document.getElementById('rainSelect');
+        const statusText = document.getElementById('status');
 
-playBtn.onclick = function() {
-    // 1. If it's already playing, STOP it
-    if (!player.paused) {
-        player.pause();
-        player.currentTime = 0;
-        playBtn.innerText = "START";
-        playBtn.classList.remove('active');
-        statusText.innerText = "Stopped";
-        return;
-    }
+        playBtn.onclick = async function() {
+            // 1. If it's already playing, STOP it
+            if (!player.paused) {
+                player.pause();
+                player.currentTime = 0;
+                playBtn.innerText = "START";
+                playBtn.classList.remove('active');
+                statusText.innerText = "Stopped";
+                return;
+            }
 
-    // 2. If we are STARTING:
-    // Update the button IMMEDIATELY so the user sees feedback
-    playBtn.innerText = "STOP";
-    playBtn.classList.add('active');
-    statusText.innerText = "Loading...";
+            // 2. Start Logic
+            statusText.innerText = "Connecting...";
+            player.src = rainSelect.value;
 
-    try {
-        player.src = rainSelect.value;
-        
-        // We fire the play command
-        player.play().then(() => {
-            statusText.innerText = "Playing Smoothly";
-        }).catch(err => {
-            console.error(err);
-            // If the specific link fails, try the backup
-            statusText.innerText = "Link failed. Trying backup...";
-            player.src = "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
-            player.play();
-        });
-    } catch (e) {
-        // Reset button if a critical error happens
-        playBtn.innerText = "START";
-        playBtn.classList.remove('active');
-        statusText.innerText = "Error: " + e.message;
-    }
-};
+            try {
+                await player.play();
+                // We update the UI here immediately after play starts
+                updateUI(true);
+            } catch (err) {
+                console.error("Playback failed, trying backup...");
+                // Emergency fallback logic
+                player.src = "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
+                try {
+                    await player.play();
+                    updateUI(true);
+                    statusText.innerText = "Playing Backup Rain";
+                } catch (finalErr) {
+                    statusText.innerText = "Error: Tap again";
+                    updateUI(false);
+                }
+            }
+        };
 
-// Reset everything if they change the sound
-rainSelect.onchange = () => {
-    player.pause();
-    playBtn.innerText = "START";
-    playBtn.classList.remove('active');
-    statusText.innerText = "Ready";
-};
+        function updateUI(isPlaying) {
+            if (isPlaying) {
+                playBtn.innerText = "STOP";
+                playBtn.classList.add('active');
+                statusText.innerText = "Playing Smoothly";
+            } else {
+                playBtn.innerText = "START";
+                playBtn.classList.remove('active');
+            }
+        }
 
+        rainSelect.onchange = () => {
+            player.pause();
+            updateUI(false);
+        };
     </script>
 </body>
 </html>
