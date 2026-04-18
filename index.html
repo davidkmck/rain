@@ -6,25 +6,28 @@
     <title>Rain App</title>
     <style>
         body {
-            margin: 0; background: #0f172a; color: #f8fafc;
+            margin: 0; background: #060b16; color: #f8fafc;
             font-family: sans-serif; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100vh;
-            overflow: hidden; transition: background 1s;
+            overflow: hidden;
         }
         
-        /* THE RAIN ANIMATION: Pure CSS, no external images needed */
+        /* POURING RAIN ANIMATION */
         #rain-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; display: none; z-index: 1;
         }
         .drop {
-            position: absolute; width: 2px; height: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            animation: fall 0.5s linear infinite;
+            position: absolute; 
+            width: 1px;         /* Thinner */
+            height: 25px;       /* Longer */
+            background: rgba(255, 255, 255, 0.4);
+            animation: fall 0.2s linear infinite; /* Much faster for "pouring" effect */
         }
         @keyframes fall { to { transform: translateY(100vh); } }
 
-        h1 { font-weight: 300; letter-spacing: 10px; color: #38bdf8; z-index: 10; margin-bottom: 40px; }
+        /* CHANGED FROM ATMOSPHERE TO RAIN */
+        h1 { font-weight: 300; letter-spacing: 12px; color: #38bdf8; z-index: 10; margin-bottom: 40px; }
         
         select {
             background: #1e293b; color: white; border: 1px solid #334155;
@@ -36,11 +39,10 @@
             background: #38bdf8; color: #0f172a; border: none;
             padding: 22px 60px; border-radius: 50px; font-size: 1.3rem;
             font-weight: bold; cursor: pointer; transition: 0.3s; z-index: 10;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
         #playBtn.active { background: #ef4444; color: white; }
         
-        #status { margin-top: 25px; font-size: 0.9rem; color: #64748b; z-index: 10; font-style: italic; }
+        #status { margin-top: 25px; font-size: 0.9rem; color: #64748b; z-index: 10; }
     </style>
 </head>
 <body>
@@ -67,55 +69,47 @@
         const status = document.getElementById('status');
         const rainContainer = document.getElementById('rain-container');
 
-        // Create the CSS rain drops once
         function createRain() {
             rainContainer.innerHTML = '';
-            for(let i=0; i<80; i++) {
+            // Increased to 120 drops for a heavier look
+            for(let i=0; i<120; i++) {
                 let drop = document.createElement('div');
                 drop.className = 'drop';
                 drop.style.left = Math.random() * 100 + 'vw';
-                drop.style.animationDelay = Math.random() * 2 + 's';
-                drop.style.animationDuration = (0.2 + Math.random() * 0.3) + 's';
+                drop.style.animationDelay = Math.random() * 1 + 's';
+                // Varied speeds for depth
+                drop.style.animationDuration = (0.15 + Math.random() * 0.1) + 's'; 
                 rainContainer.appendChild(drop);
             }
         }
 
-        function start() {
-            // 1. Update UI immediately
-            btn.innerText = "STOP";
-            btn.classList.add('active');
-            status.innerText = "Atmosphere Loading...";
-            
-            // 2. Start Animation
-            rainContainer.style.display = 'block';
-            createRain();
-
-            // 3. Start Audio
-            player.src = selector.value;
-            player.play().catch(e => {
-                console.log("Retrying audio...");
-                player.play(); // Second attempt often clears browser blocks
-            });
-        }
-
-        function stop() {
-            player.pause();
-            player.currentTime = 0;
-            btn.innerText = "START";
-            btn.classList.remove('active');
-            status.innerText = "Ready";
-            rainContainer.style.display = 'none';
-        }
-
-        btn.onclick = () => {
+        function toggle() {
             if (player.paused) {
-                start();
+                // UI Changes
+                btn.innerText = "STOP";
+                btn.classList.add('active');
+                status.innerText = "Pouring...";
+                rainContainer.style.display = 'block';
+                createRain();
+                
+                // Audio
+                player.src = selector.value;
+                player.play().catch(e => {
+                    // Fallback for browser block
+                    player.play();
+                });
             } else {
-                stop();
+                player.pause();
+                player.currentTime = 0;
+                btn.innerText = "START";
+                btn.classList.remove('active');
+                status.innerText = "Ready";
+                rainContainer.style.display = 'none';
             }
-        };
+        }
 
-        selector.onchange = () => { if (!player.paused) stop(); };
+        btn.onclick = toggle;
+        selector.onchange = () => { if (!player.paused) toggle(); };
     </script>
 </body>
 </html>
