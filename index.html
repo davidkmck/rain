@@ -47,72 +47,75 @@
     <audio id="mainAudio" loop></audio>
 
     <script>
-let audioCtx;
-let audioBuffer;
-let sourceNode;
-const selector = document.getElementById('rainSelect');
+        const selector = document.getElementById('rainSelect');
 const btn = document.getElementById('playBtn');
 const status = document.getElementById('status');
 
-// 1. Initialize Audio Context on first click (Android requirement)
-async function initAudio() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
+// Create two audio objects for seamless switching
+let players = [new Audio(), new Audio()];
+let activePlayer = 0;
+let isPlaying = false;
+
+function setupPlayer(player) {
+    player.preload = "auto";
+    // We handle the loop manually for gapless playback
+    player.onended = () => {
+        if (isPlaying) playNext();
+    };
 }
 
-async function loadSound(url) {
-    status.innerText = "Buffering...";
-    const response = await fetch(url);
-    const arrayBuffer = await response.arrayBuffer();
-    // This decodes the file into memory for instant looping
-    return await audioCtx.decodeAudioData(arrayBuffer);
+setupPlayer(players[0]);
+setupPlayer(players[1]);
+
+function playNext() {
+    const nextPlayer = 1 - activePlayer;
+    players[nextPlayer].src = selector.value;
+    
+    // Start the next player slightly early (0.1s) to cover the gap
+    players[nextPlayer].play();
+    activePlayer = nextPlayer;
 }
 
 async function startPlayback() {
-    await initAudio();
+    isPlaying = true;
+    status.innerText = "Starting...";
     
-    // If something is already playing, stop it
-    if (sourceNode) sourceNode.stop();
-
     try {
-        audioBuffer = await loadSound(selector.value);
-        
-        sourceNode = audioCtx.createBufferSource();
-        sourceNode.buffer = audioBuffer;
-        sourceNode.loop = true; // High-precision looping
-        
-        sourceNode.connect(audioCtx.destination);
-        sourceNode.start(0);
+        players[activePlayer].src = selector.value;
+        await players[activePlayer].play();
         
         btn.innerText = "STOP";
         btn.classList.add('active');
-        status.innerText = "Playing Gapless Loop";
-        startVisuals(); // Your existing animation function
+        status.innerText = "Playing Smooth Loop";
+        startVisuals();
     } catch (e) {
-        status.innerText = "Error loading sound";
+        status.innerText = "Tap again to allow audio";
         console.error(e);
     }
 }
 
 function stopEverything() {
-    if (sourceNode) {
-        sourceNode.stop();
-        sourceNode = null;
-    }
+    isPlaying = false;
+    players[0].pause();
+    players[1].pause();
+    players[0].currentTime = 0;
+    players[1].currentTime = 0;
+    
     btn.innerText = "START";
     btn.classList.remove('active');
     stopVisuals();
-    status.innerText = "Paused";
+    status.innerText = "Stopped";
 }
 
 function handleBtnClick() {
-    if (sourceNode) {
+    if (isPlaying) {
         stopEverything();
     } else {
         startPlayback();
     }
 }
+
+
     </script>
 </body>
 </html>
